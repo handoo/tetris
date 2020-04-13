@@ -2,7 +2,9 @@
 
 ## INSTALL
 
-`clone`
+### `$ git clone https://github.com/jinmyeongKIM/tetris.git`
+### `$ npm install or yarn install`
+### `$ npm start or yarn start`
 
 ## KEY
 
