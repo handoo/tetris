@@ -1,9 +1,11 @@
-export type BlockData = Array<Array<Array<number>>>;
-export type BlockDataHasRotate = Array<Array<number>>;
-export type BlockDefault = Array<number>;
+export type BlockData = number[][][];
+export type BlockDataHasRotate = number[][];
+export type BlockDefault = number[];
 export type Blocks = {
     [key: string]: BlockData
 };
+
+export const blockStrings: string[] = ['i', 'o', 't', 'l', 'j', 's', 'z'];
 
 const i:BlockData = [
     [
@@ -67,12 +69,60 @@ const l:BlockData = [
     ]
 ];
 
+const j:BlockData = [
+    [
+        [0, 5],
+        [0, 5],
+        [5, 5],
+    ],
+    [
+        [5, 0, 0],
+        [5, 5, 5],
+    ],
+    [
+        [5, 5],
+        [5, 0],
+        [5, 0],
+    ],
+    [
+        [5, 5, 5],
+        [5, 0, 0],
+    ]
+];
+
+const s:BlockData = [
+    [
+        [0, 6, 6],
+        [6, 6, 0],
+    ],
+    [
+        [6, 0],
+        [6, 6],
+        [0, 6],
+    ],
+];
+
+const z:BlockData = [
+    [
+        [7, 7, 0],
+        [0, 7, 7],
+    ],
+    [
+        [0, 7],
+        [7, 7],
+        [7, 0],
+    ],
+];
+
 
 const Blocks: Blocks = {
     i: i,
     o: o,
     t: t,
     l: l,
+    j: j,
+    s: s,
+    z: z,
 };
 
 export default Blocks;
