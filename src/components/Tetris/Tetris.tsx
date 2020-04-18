@@ -1,17 +1,17 @@
 import React, {Component} from "react";
 import {TetrisProps, TetrisDefaultProps} from "./types/TetrisProps";
-import {TetrisState, TetrisDefaultState} from "./types/TetrisState";
+import {TetrisState, TetrisDefaultState, shuffle} from "./types/TetrisState";
 import {KeyboardEvent} from "./Interfaces/Event";
 import Style from "./Tetris.module.scss";
 import Cell from "./Cell";
-import Blocks, {BlockDefault, getBlockPadding, BlockDataHasRotate} from "./Blocks";
+import Blocks, {BlockDefault, getBlockPadding, BlockDataHasRotate, blockStrings} from "./Blocks";
 
 class Tetris extends Component<TetrisProps, TetrisState> {
 
     state: TetrisState = TetrisDefaultState;
 
     static defaultProps: TetrisProps = TetrisDefaultProps;
-    private timer:any;
+    private timer: any;
 
     constructor(props: TetrisProps) {
         super(props);
@@ -31,8 +31,10 @@ class Tetris extends Component<TetrisProps, TetrisState> {
         this.state = {
             ...this.state,
             matrix: matrix,
+            matrixBlockLayer: matrix,
             activeBlock: 't',
-            position: [0, 6]
+            position: [0, 6],
+            rotate: 3
         };
     }
 
@@ -44,7 +46,7 @@ class Tetris extends Component<TetrisProps, TetrisState> {
         if (keyboardEvent.code === 'ArrowUp') {
             let nextBlock: BlockDataHasRotate = Blocks[activeBlock][(rotate + 1) % Blocks[activeBlock].length];
 
-            if(position[0] + nextBlock.length < 20)
+            if (position[0] + nextBlock.length < 20)
                 this.setState({
                     rotate: rotate + 1
                 });
@@ -66,17 +68,71 @@ class Tetris extends Component<TetrisProps, TetrisState> {
                 ]
             })
         } else if (keyboardEvent.code === 'ArrowDown') {
-            if(position[0] + block.length < 20)
+            this.downCheck();
+        } else if (keyboardEvent.code === 'Space') {
+
+        }
+    };
+
+    downCheck() {
+        const {position, matrix} = this.state;
+        let block = this.getBlock();
+
+
+        if(position[0] + block.length < 20){
+            let isContinue = true;
+            let sensorArr: number[][] = [];
+            block.map((blockRow, rowIndex) => {
+                let sensor: number[] = [];
+                blockRow.map((cell, cellIndex) => {
+                    if(cell !== 0
+                        && matrix[position[0] + rowIndex + 1][position[1] + cellIndex] > 0)
+                        isContinue = false;
+                    sensor.push(matrix[position[0] + rowIndex + 1][position[1] + cellIndex]);
+                });
+                sensorArr.push(sensor);
+            });
+
+            if (isContinue)
                 this.setState({
                     position: [
                         position[0] + 1,
                         position[1]
                     ]
                 });
-        } else if (keyboardEvent.code === 'Space') {
-
+            else{
+                this.commitBlock();
+            }
+        }else{
+            this.commitBlock();
         }
-    };
+    }
+
+    commitBlock(){
+        const {position, activeBlock, matrix, rotate, matrixBlockLayer} = this.state;
+
+        let block: BlockDataHasRotate = Blocks[activeBlock][rotate % Blocks[activeBlock].length];
+
+        block.map((blockRow, rowIndex) => {
+            blockRow.map((cell, cellIndex) => {
+                matrix[position[0] + rowIndex][position[1] + cellIndex] = cell
+            });
+        });
+
+        let nextBlock:string | undefined = this.state.blockPreview.pop();
+
+        this.setState({
+            matrix: matrixBlockLayer,
+            activeBlock: nextBlock ? nextBlock : '',
+            position: [0, 6],
+        }, () => {
+            console.log(this.state.blockPreview);
+            if(this.state.blockPreview.length === 0)
+                this.setState({
+                    blockPreview: JSON.parse(JSON.stringify(shuffle(blockStrings)))
+                });
+        })
+    }
 
     getBlock(): BlockDataHasRotate {
         const {activeBlock, rotate} = this.state;
@@ -85,19 +141,16 @@ class Tetris extends Component<TetrisProps, TetrisState> {
         return block;
     }
 
+    componentDidUpdate(prevProps: Readonly<TetrisProps>, prevState: Readonly<TetrisState>, snapshot?: any): void {
+
+    }
+
     componentDidMount(): void {
         document.addEventListener("keydown", this.handleKey, false);
 
-        let block = this.getBlock();
         this.timer = setInterval(() => {
-            if(this.state.position[0] + block.length < 20)
-            this.setState({
-                position: [
-                    this.state.position[0] + 1,
-                    this.state.position[1]
-                ]
-            })
-        }, 1000);
+            this.downCheck();
+        }, 700);
     }
 
     componentWillUnmount(): void {
@@ -110,12 +163,11 @@ class Tetris extends Component<TetrisProps, TetrisState> {
         let block = Blocks[state.activeBlock][state.rotate % Blocks[state.activeBlock].length];
         let newLayer = JSON.parse(JSON.stringify(state.matrix));
 
-        block.map((row: BlockDefault, index: number) => {
-            let targetRow = newLayer[state.position[0] + index];
-            targetRow.splice(state.position[1], block[index].length, row);
-            targetRow = targetRow.flat();
-
-            newLayer[state.position[0] + index] = targetRow;
+        block.map((blockRow, rowIndex) => {
+            blockRow.map((cell, cellIndex) => {
+                if(cell > 0)
+                    newLayer[state.position[0] + rowIndex][state.position[1] + cellIndex] = cell;
+            });
         });
 
         let effectiveLength = getBlockPadding(block);
@@ -124,8 +176,6 @@ class Tetris extends Component<TetrisProps, TetrisState> {
         } else if (state.position[1] + 1 > 13 - block[0].length + effectiveLength.right) {
             state.position[1] = 13 - block[0].length + effectiveLength.right;
         }
-
-        // crash detect
 
         setState = {
             ...setState,
